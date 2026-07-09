@@ -1,0 +1,157 @@
+// FeesUp Prisma schema
+// Conventions: money in integer paise; timestamps UTC; overdue is derived, not stored.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SubscriptionPlan {
+  FREE
+  PRO
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum FeeStatus {
+  PENDING
+  PAID
+}
+
+enum ReminderType {
+  PRE_DUE
+  DUE
+  OVERDUE
+}
+
+enum ReminderStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+}
+
+model Tutor {
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  passwordHash       String
+  name               String
+  phone              String?
+  panNumber          String?
+  bankAccount        String?
+  ifsc               String?
+  razorpayAccountId  String? // Model B: tutor's own connected Razorpay account
+  subscriptionPlan   SubscriptionPlan   @default(FREE)
+  subscriptionStatus SubscriptionStatus @default(ACTIVE)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  students   Student[]
+  feeRecords FeeRecord[]
+  reminders  Reminder[]
+  payments   Payment[]
+
+  @@map("tutors")
+}
+
+model Student {
+  id             String   @id @default(uuid())
+  tutorId        String
+  studentName    String
+  parentName     String
+  parentWhatsapp String // E.164, e.g. +919812345678
+  monthlyFee     Int // paise
+  feeDueDay      Int      @default(5) // day of month (1-28)
+  isActive       Boolean  @default(true) // soft delete
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tutor      Tutor       @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  feeRecords FeeRecord[]
+  reminders  Reminder[]
+
+  @@index([tutorId])
+  @@map("students")
+}
+
+model FeeRecord {
+  id                    String    @id @default(uuid())
+  studentId             String
+  tutorId               String
+  month                 Int // 1-12
+  year                  Int
+  amount                Int // paise
+  status                FeeStatus @default(PENDING)
+  paymentLink           String?
+  razorpayPaymentLinkId String?
+  paidAt                DateTime?
+  transactionId         String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tutor     Tutor      @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  reminders Reminder[]
+  payments  Payment[]
+
+  @@unique([studentId, month, year])
+  @@index([tutorId, year, month])
+  @@map("fee_records")
+}
+
+model Reminder {
+  id                String         @id @default(uuid())
+  studentId         String
+  feeRecordId       String
+  tutorId           String
+  reminderType      ReminderType
+  channel           String         @default("whatsapp")
+  templateName      String?
+  providerMessageId String?
+  status            ReminderStatus @default(QUEUED)
+  error             String?
+  sentAt            DateTime       @default(now())
+
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  feeRecord FeeRecord @relation(fields: [feeRecordId], references: [id], onDelete: Cascade)
+  tutor     Tutor     @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+
+  @@unique([feeRecordId, reminderType])
+  @@index([tutorId])
+  @@map("reminders")
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  tutorId          String
+  feeRecordId      String?
+  razorpayPaymentId String  @unique
+  amount           Int // paise
+  status           String
+  raw              Json?
+  createdAt        DateTime @default(now())
+
+  tutor     Tutor      @relation(fields: [tutorId], references: [id], onDelete: Cascade)
+  feeRecord FeeRecord? @relation(fields: [feeRecordId], references: [id])
+
+  @@index([tutorId])
+  @@map("payments")
+}
+
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  provider    String    @default("razorpay")
+  eventId     String    @unique
+  payload     Json
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("webhook_events")
+}
