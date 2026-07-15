@@ -30,6 +30,15 @@ class PaymentProvider {
   verifyWebhookSignature(rawBody, signature) {
     throw new Error('verifyWebhookSignature not implemented');
   }
+
+  /**
+   * Normalize a parsed webhook event into a vendor-agnostic shape:
+   * { type: 'PAID', feeRecordId, studentId, month, year, paymentId, amount, status } | null
+   */
+  // eslint-disable-next-line no-unused-vars
+  parseWebhookEvent(event) {
+    throw new Error('parseWebhookEvent not implemented');
+  }
 }
 
 module.exports = { PaymentProvider };

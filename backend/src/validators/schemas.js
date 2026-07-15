@@ -42,6 +42,31 @@ const generateFeeRecordsSchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100).optional(),
 });
 
+const onboardingSchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^\+[1-9]\d{7,14}$/, 'Phone must be in international format, e.g. +919812345678')
+    .optional(),
+  panNumber: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{5}[0-9]{4}[A-Za-z]$/, 'Invalid PAN (format: ABCDE1234F)')
+    .optional(),
+  bankAccount: z
+    .string()
+    .trim()
+    .regex(/^\d{6,18}$/, 'Bank account must be 6–18 digits')
+    .optional(),
+  ifsc: z
+    .string()
+    .trim()
+    .regex(/^[A-Za-z]{4}0[A-Za-z0-9]{6}$/, 'Invalid IFSC (format: HDFC0001234)')
+    .optional(),
+  razorpayAccountId: z.string().trim().max(120).optional(),
+});
+
 module.exports = {
   signupSchema,
   loginSchema,
@@ -50,4 +75,5 @@ module.exports = {
   monthYearQuerySchema,
   updateFeeStatusSchema,
   generateFeeRecordsSchema,
+  onboardingSchema,
 };

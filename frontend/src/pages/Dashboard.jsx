@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, apiErrorMessage } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import Logo from '../components/Logo';
@@ -18,7 +19,14 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [busyId, setBusyId] = useState(null);
   const [modal, setModal] = useState({ open: false, student: null });
+
+  const flash = (msg) => {
+    setNotice(msg);
+    setTimeout(() => setNotice(''), 2500);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -49,6 +57,34 @@ export default function Dashboard() {
     }
   };
 
+  const getLink = async (row) => {
+    setBusyId(row.feeRecordId);
+    setError('');
+    try {
+      await api.post(`/api/fee-records/${row.feeRecordId}/payment-link`);
+      flash(`Payment link ready for ${row.studentName}`);
+      load();
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const remind = async (row) => {
+    setBusyId(row.feeRecordId);
+    setError('');
+    try {
+      const { data: res } = await api.post(`/api/fee-records/${row.feeRecordId}/remind`);
+      flash(`Reminder sent to ${row.parentName} (${res?.reminderType || 'reminder'})`);
+      load();
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const remove = async (row) => {
     if (!window.confirm(`Remove ${row.studentName}? Their fee history is preserved.`)) return;
     try {
@@ -67,6 +103,9 @@ export default function Dashboard() {
           <Logo />
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-white/50 sm:inline">{tutor?.name}</span>
+            <Link to="/settings" className="btn-ghost px-3 py-1.5 text-xs">
+              Settings
+            </Link>
             <button className="btn-ghost px-3 py-1.5 text-xs" onClick={logout}>
               Log out
             </button>
@@ -93,6 +132,11 @@ export default function Dashboard() {
             {error}
           </div>
         )}
+        {notice && (
+          <div className="mb-4 rounded-lg border border-brand-accent/40 bg-brand-accent/10 px-3 py-2 text-sm text-brand-accent">
+            {notice}
+          </div>
+        )}
 
         <div className="mb-8">
           <SummaryCards summary={data?.summary} />
@@ -104,7 +148,10 @@ export default function Dashboard() {
           <StudentTable
             rows={data?.rows || []}
             period={period}
+            busyId={busyId}
             onToggleStatus={toggleStatus}
+            onGetLink={getLink}
+            onRemind={remind}
             onEdit={(row) => setModal({ open: true, student: row })}
             onDelete={remove}
           />

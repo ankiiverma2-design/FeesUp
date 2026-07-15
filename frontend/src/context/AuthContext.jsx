@@ -49,7 +49,13 @@ export function AuthProvider({ children }) {
     setTutor(null);
   }, []);
 
-  const value = { tutor, loading, signup, login, logout, isAuthenticated: !!tutor };
+  const refreshTutor = useCallback(async () => {
+    const { data } = await api.get('/api/auth/me');
+    setTutor(data.tutor);
+    return data.tutor;
+  }, []);
+
+  const value = { tutor, loading, signup, login, logout, refreshTutor, isAuthenticated: !!tutor };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

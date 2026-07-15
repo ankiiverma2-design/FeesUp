@@ -46,4 +46,16 @@ function isOverdue({ month, year, feeDueDay }) {
   return td > dueDay;
 }
 
-module.exports = { nowInIST, currentPeriod, clampDayToMonth, isOverdue };
+/**
+ * Whole-day difference between the fee record's due date and today (IST).
+ * Positive = due in the future, 0 = due today, negative = past due.
+ */
+function daysUntilDue({ month, year, feeDueDay }) {
+  const { year: ty, month: tm, day: td } = nowInIST();
+  const dueDay = clampDayToMonth(feeDueDay, month, year);
+  const dueUtc = Date.UTC(year, month - 1, dueDay);
+  const todayUtc = Date.UTC(ty, tm - 1, td);
+  return Math.round((dueUtc - todayUtc) / (24 * 60 * 60 * 1000));
+}
+
+module.exports = { nowInIST, currentPeriod, clampDayToMonth, isOverdue, daysUntilDue };
