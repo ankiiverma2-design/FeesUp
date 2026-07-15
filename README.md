@@ -14,19 +14,21 @@ This repository is a single repo containing:
 
 ## Status
 
-Implemented so far (Phase 0 + Phase 1):
+Implemented (Phases 0–4, against mock/test providers):
 
-- Tutor signup / login with JWT auth and bcrypt password hashing.
-- Multi-tenant isolation (all data scoped to the logged-in tutor).
+- Tutor signup / login with JWT auth and bcrypt password hashing; multi-tenant isolation.
 - Student management: add / edit / soft-delete, with a 10-student free-tier cap.
 - Monthly fee records (one per student per month), generated on demand and via a job.
 - Dashboard with per-student status (paid / pending / overdue) and summary cards.
-- Manual "mark paid / pending" (before the Razorpay integration).
-- Provider adapters (payments + WhatsApp) with mock implementations so everything runs
-  offline; live Razorpay / PayPerWA slot in behind the same interfaces later.
+- Manual "mark paid / pending".
+- Razorpay payment links per fee record + webhook that auto-marks paid (idempotent, signature-verified).
+- WhatsApp reminders: 3 templates (pre-due / due / overdue), manual trigger + daily sweep.
+- Subscription (Free / Pro) + tutor onboarding (PAN / bank) via a Settings page.
+- Provider adapters (payments + WhatsApp): mock by default; real Razorpay (test mode) and
+  PayPerWA wired — flip `PAYMENT_PROVIDER` / `MESSAGING_PROVIDER` + add keys to go live.
 
-Deferred to later phases: Razorpay payment links + webhook, PayPerWA reminders,
-subscription billing, tutor onboarding / Razorpay Route split.
+Next (Phase 5): automated tests, external cron wiring, deploy, real subscription billing,
+and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
 
 ## Tech stack
 
