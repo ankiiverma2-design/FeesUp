@@ -27,8 +27,14 @@ Implemented (Phases 0–4, against mock/test providers):
 - Provider adapters (payments + WhatsApp): mock by default; real Razorpay (test mode) and
   PayPerWA wired — flip `PAYMENT_PROVIDER` / `MESSAGING_PROVIDER` + add keys to go live.
 
-Next (Phase 5): automated tests, external cron wiring, deploy, real subscription billing,
-and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
+Tooling: unit tests (`npm test` in `backend/`), GitHub Actions **CI** (build + tests on every
+push), a scheduled-jobs workflow (reminders + monthly fee generation), and deploy configs for
+Vercel + Render + Supabase.
+
+To deploy / go live, follow **`docs/DEPLOYMENT.md`**. WhatsApp template texts for Meta approval
+are in **`docs/WhatsAppTemplates.md`**.
+
+Next: real subscription billing and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
 
 ## Tech stack
 

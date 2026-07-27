@@ -12,8 +12,12 @@
   (Free/Pro) + tutor onboarding (PAN/bank) via a Settings page.
 - **Providers:** mock by default; real Razorpay (test mode) and PayPerWA adapters wired —
   flip `PAYMENT_PROVIDER=razorpay` / `MESSAGING_PROVIDER=payperwa` + add keys to go live.
-- **Next up:** Phase 5 — tests, external cron wiring, deploy (Vercel + Render/Railway +
-  Supabase), register webhook URL. Plus productionise Model B payouts + real subscription billing.
+- **Tooling in place:** unit tests (`npm test`, 12 passing), CI on every push, GitHub Actions
+  scheduled cron, and deploy configs for Vercel + Render + Supabase.
+- **Next up:** merge PR #1 (after local smoke test), then deploy following `docs/DEPLOYMENT.md`.
+  Remaining steps are all "your account" tasks: Supabase URL, Razorpay test keys + webhook,
+  PayPerWA key + Meta template approval. Later: real subscription billing, Model A Route split,
+  route/webhook integration tests with a test DB.
 
 ## Locked decisions
 - **Money model:** Model B (SaaS-only) for launch. Tutors connect their own Razorpay later;
@@ -54,6 +58,17 @@
 - No automated tests yet (none requested). Add in Phase 5.
 
 ## Changelog
+### 2026-07-09 — Hardening, tests, CI & deploy configs
+- Extracted pure `lib/reminderLogic.js` (determineReminderType) and **fixed a pre-due sign
+  bug** (now fires when daysUntilDue === 3). Renamed config to `REMINDER_RULES`.
+- Added `node:test` unit tests (`backend/test/`) for time, format, reminderLogic — 12 tests,
+  all passing. Added `npm test` (= `node --test`).
+- CI: `.github/workflows/ci.yml` (backend install/prisma/validate/test + frontend build).
+- Scheduled jobs: `.github/workflows/scheduled-jobs.yml` (daily reminders, monthly fee gen)
+  hitting `/internal/jobs/*` with `INTERNAL_JOB_SECRET` — free, host-agnostic.
+- Deploy configs: `frontend/vercel.json`, `backend/render.yaml`, `.nvmrc` (20) both apps.
+- Docs: `docs/WhatsAppTemplates.md` (3 Meta-ready templates) + `docs/DEPLOYMENT.md` (go-live).
+
 ### 2026-07-09 — Phases 2–4 built
 - Phase 2: RazorpayPaymentProvider (REST) + `paymentService` + payment-link route + raw-body
   webhook route (`/api/webhooks/razorpay`) with HMAC verify + idempotency via `webhook_events`;
