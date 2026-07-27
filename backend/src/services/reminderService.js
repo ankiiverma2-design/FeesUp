@@ -1,22 +1,11 @@
 const { prisma } = require('../lib/prisma');
 const { messagingProvider } = require('../providers');
 const { ApiError } = require('../utils/errors');
-const { daysUntilDue, currentPeriod } = require('../lib/time');
+const { currentPeriod } = require('../lib/time');
 const { formatPaise, monthLabel } = require('../lib/format');
-const { TEMPLATES, REMINDER_OFFSETS } = require('../config/reminderTemplates');
+const { TEMPLATES } = require('../config/reminderTemplates');
+const { determineReminderType } = require('../lib/reminderLogic');
 const paymentService = require('./paymentService');
-
-/**
- * Which reminder applies today for a fee record, based on days-to-due (IST):
- *   -3 => PRE_DUE, 0 => DUE, +3 => OVERDUE. Returns null on other days.
- */
-function determineReminderType(record, student) {
-  const diff = daysUntilDue({ month: record.month, year: record.year, feeDueDay: student.feeDueDay });
-  if (diff === REMINDER_OFFSETS.PRE_DUE) return 'PRE_DUE';
-  if (diff === REMINDER_OFFSETS.DUE) return 'DUE';
-  if (diff <= -REMINDER_OFFSETS.OVERDUE) return 'OVERDUE';
-  return null;
-}
 
 /**
  * Send a reminder for a fee record.

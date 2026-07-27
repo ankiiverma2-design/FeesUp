@@ -27,7 +27,10 @@ const TEMPLATES = {
   },
 };
 
-// Number of days before/after the due date that each reminder type applies.
-const REMINDER_OFFSETS = { PRE_DUE: -3, DUE: 0, OVERDUE: 3 };
+// Reminder timing rules, expressed in terms of `daysUntilDue` (positive = due in the future):
+//   PRE_DUE  fires when daysUntilDue === PRE_DUE_DAYS_BEFORE  (e.g. 3 days remain)
+//   DUE      fires when daysUntilDue === 0                    (due today)
+//   OVERDUE  fires when daysUntilDue <= -OVERDUE_DAYS_AFTER   (e.g. 3+ days past due)
+const REMINDER_RULES = { PRE_DUE_DAYS_BEFORE: 3, OVERDUE_DAYS_AFTER: 3 };
 
-module.exports = { TEMPLATES, REMINDER_OFFSETS };
+module.exports = { TEMPLATES, REMINDER_RULES };
