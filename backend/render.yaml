@@ -1,0 +1,42 @@
+# Render Blueprint for the FeesUp API.
+# Deploy: on Render, "New +" > "Blueprint", point at this repo (root dir = backend).
+# Scheduled jobs (fee generation + reminders) run via the free GitHub Actions cron
+# (.github/workflows/scheduled-jobs.yml) hitting the /internal/jobs/* endpoints — matching the
+# "external cron -> protected endpoint" design (see docs/Architecture.md).
+services:
+  - type: web
+    name: feesup-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npx prisma generate
+    # Applies pending migrations, then starts the server.
+    startCommand: npx prisma migrate deploy && node src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # set to your Supabase connection string
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_ORIGIN
+        sync: false # set to your Vercel URL, e.g. https://feesup.vercel.app
+      - key: INTERNAL_JOB_SECRET
+        sync: false # must match the secret used by the scheduled-jobs workflow
+      - key: PAYMENT_PROVIDER
+        value: mock # switch to "razorpay" when keys are set
+      - key: MESSAGING_PROVIDER
+        value: mock # switch to "payperwa" when keys are set
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: PAYPERWA_API_KEY
+        sync: false
+      - key: PAYPERWA_BASE_URL
+        sync: false

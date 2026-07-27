@@ -1,0 +1,35 @@
+name: Scheduled jobs
+
+# Free, host-agnostic cron: calls the protected internal endpoints on a schedule.
+# Configure two repo secrets (Settings > Secrets and variables > Actions):
+#   API_URL              e.g. https://feesup-api.onrender.com
+#   INTERNAL_JOB_SECRET  same value as the backend's INTERNAL_JOB_SECRET env var
+on:
+  schedule:
+    # Daily reminder sweep at 03:30 UTC (09:00 IST).
+    - cron: '30 3 * * *'
+    # Monthly fee-record generation: 1st of each month at 18:30 UTC (00:00 IST on the 2nd).
+    - cron: '30 18 1 * *'
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+jobs:
+  run-jobs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate fee records (monthly only)
+        if: github.event.schedule == '30 18 1 * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -fsS -X POST "$API_URL/internal/jobs/generate-fee-records" \
+            -H "x-internal-secret: $INTERNAL_JOB_SECRET"
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          INTERNAL_JOB_SECRET: ${{ secrets.INTERNAL_JOB_SECRET }}
+
+      - name: Send reminders (daily)
+        if: github.event.schedule == '30 3 * * *' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -fsS -X POST "$API_URL/internal/jobs/send-reminders" \
+            -H "x-internal-secret: $INTERNAL_JOB_SECRET"
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          INTERNAL_JOB_SECRET: ${{ secrets.INTERNAL_JOB_SECRET }}
