@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: FeesUp API
+  version: 1.0.0
+  description: >
+    REST API for FeesUp — tuition fee management for home tutors.
+    Auth is JWT Bearer. All money fields are integer paise on output; the student
+    `monthlyFee` field is accepted in rupees on input and stored as paise.
+    Timestamps are ISO-8601 UTC. Fee status is stored as PENDING/PAID; OVERDUE is derived.
+servers:
+  - url: http://localhost:4000
+    description: Local
+  - url: https://your-api.onrender.com
+    description: Production (replace with your Render URL)
+
+tags:
+  - name: Auth
+  - name: Students
+  - name: Dashboard
+  - name: Fee Records
+  - name: Tutor
+  - name: Subscription
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [Auth]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  service: { type: string, example: feesup-api }
+
+  /api/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Create a tutor account
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name: { type: string, example: Priya Tutor }
+                email: { type: string, format: email, example: priya@example.com }
+                password: { type: string, minLength: 8, example: supersecret }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '409': { $ref: '#/components/responses/Error' }
+        '400': { $ref: '#/components/responses/Error' }
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuthResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: Get the current tutor
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tutor: { $ref: '#/components/schemas/Tutor' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/students:
+    get:
+      tags: [Students]
+      summary: List active students
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  students:
+                    type: array
+                    items: { $ref: '#/components/schemas/Student' }
+    post:
+      tags: [Students]
+      summary: Create a student (enforces 10-student free-tier cap)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudentInput' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  student: { $ref: '#/components/schemas/Student' }
+        '400': { $ref: '#/components/responses/Error' }
+        '403':
+          description: Free-tier limit reached (code FREE_TIER_LIMIT)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorBody' }
+
+  /api/students/{id}:
+    patch:
+      tags: [Students]
+      summary: Update a student
+      parameters: [{ $ref: '#/components/parameters/IdParam' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StudentInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  student: { $ref: '#/components/schemas/Student' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [Students]
+      summary: Soft-delete a student (history preserved)
+      parameters: [{ $ref: '#/components/parameters/IdParam' }]
+      responses:
+        '204': { description: Deleted }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Fee status + summary for a period (defaults to current month, IST)
+      parameters:
+        - { name: month, in: query, schema: { type: integer, minimum: 1, maximum: 12 } }
+        - { name: year, in: query, schema: { type: integer, minimum: 2000, maximum: 2100 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DashboardResponse' }
+
+  /api/fee-records/{id}/status:
+    patch:
+      tags: [Fee Records]
+      summary: Manually mark a fee record PAID or PENDING
+      parameters: [{ $ref: '#/components/parameters/IdParam' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [PENDING, PAID] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feeRecord: { $ref: '#/components/schemas/FeeRecord' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/fee-records/{id}/payment-link:
+    post:
+      tags: [Fee Records]
+      summary: Generate (or return existing) Razorpay payment link
+      parameters: [{ $ref: '#/components/parameters/IdParam' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  paymentLink: { type: string, example: 'https://rzp.io/i/abc123' }
+                  razorpayPaymentLinkId: { type: string, example: plink_XXXX }
+                  reused: { type: boolean }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/fee-records/{id}/remind:
+    post:
+      tags: [Fee Records]
+      summary: Send a WhatsApp reminder now (rate-limited)
+      parameters: [{ $ref: '#/components/parameters/IdParam' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reminderType: { type: string, enum: [PRE_DUE, DUE, OVERDUE] }
+                  status: { type: string, example: SENT }
+                  providerMessageId: { type: string, nullable: true }
+        '400': { $ref: '#/components/responses/Error' }
+
+  /api/tutor/profile:
+    patch:
+      tags: [Tutor]
+      summary: Update profile / onboarding (name, phone, PAN, bank, IFSC)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TutorProfileInput' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tutor: { $ref: '#/components/schemas/Tutor' }
+        '400': { $ref: '#/components/responses/Error' }
+
+  /api/subscription:
+    get:
+      tags: [Subscription]
+      summary: Current plan + usage + available plans
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubscriptionStatus' }
+
+  /api/subscription/upgrade:
+    post:
+      tags: [Subscription]
+      summary: Upgrade to Pro (unlimited students)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubscriptionStatus' }
+        '400': { $ref: '#/components/responses/Error' }
+
+  /api/subscription/cancel:
+    post:
+      tags: [Subscription]
+      summary: Downgrade to Free
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubscriptionStatus' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorBody' }
+  schemas:
+    ErrorBody:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message: { type: string }
+            code: { type: string, nullable: true }
+            fields:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  path: { type: string }
+                  message: { type: string }
+    Tutor:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        name: { type: string }
+        phone: { type: string, nullable: true }
+        panNumber: { type: string, nullable: true }
+        bankAccount: { type: string, nullable: true }
+        ifsc: { type: string, nullable: true }
+        razorpayAccountId: { type: string, nullable: true }
+        subscriptionPlan: { type: string, enum: [FREE, PRO] }
+        subscriptionStatus: { type: string, enum: [ACTIVE, INACTIVE] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string, description: JWT Bearer token }
+        tutor: { $ref: '#/components/schemas/Tutor' }
+    Student:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        studentName: { type: string }
+        parentName: { type: string }
+        parentWhatsapp: { type: string, example: '+919812345678' }
+        monthlyFee: { type: integer, description: paise, example: 200000 }
+        feeDueDay: { type: integer, minimum: 1, maximum: 28, example: 5 }
+        isActive: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    StudentInput:
+      type: object
+      required: [studentName, parentName, parentWhatsapp, monthlyFee]
+      properties:
+        studentName: { type: string, example: Aarav Sharma }
+        parentName: { type: string, example: Rohit Sharma }
+        parentWhatsapp:
+          type: string
+          description: E.164 international format
+          example: '+919812345678'
+        monthlyFee:
+          type: number
+          description: Amount in RUPEES (converted to paise on the server)
+          example: 2000
+        feeDueDay: { type: integer, minimum: 1, maximum: 28, default: 5 }
+    FeeRecord:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        tutorId: { type: string, format: uuid }
+        month: { type: integer }
+        year: { type: integer }
+        amount: { type: integer, description: paise }
+        status: { type: string, enum: [PENDING, PAID] }
+        paymentLink: { type: string, nullable: true }
+        razorpayPaymentLinkId: { type: string, nullable: true }
+        paidAt: { type: string, format: date-time, nullable: true }
+        transactionId: { type: string, nullable: true }
+    DashboardRow:
+      type: object
+      properties:
+        studentId: { type: string, format: uuid }
+        studentName: { type: string }
+        parentName: { type: string }
+        parentWhatsapp: { type: string }
+        feeDueDay: { type: integer }
+        feeRecordId: { type: string, format: uuid }
+        amount: { type: integer, description: paise }
+        status:
+          type: string
+          enum: [PENDING, PAID, OVERDUE]
+          description: OVERDUE is derived (unpaid + past due date)
+        paidAt: { type: string, format: date-time, nullable: true }
+        transactionId: { type: string, nullable: true }
+        paymentLink: { type: string, nullable: true }
+    DashboardResponse:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            month: { type: integer }
+            year: { type: integer }
+        summary:
+          type: object
+          properties:
+            totalExpected: { type: integer, description: paise }
+            totalCollected: { type: integer, description: paise }
+            totalPending: { type: integer, description: paise }
+            defaulters: { type: integer }
+            studentCount: { type: integer }
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/DashboardRow' }
+    TutorProfileInput:
+      type: object
+      properties:
+        name: { type: string }
+        phone: { type: string, example: '+919812345678' }
+        panNumber: { type: string, example: ABCDE1234F }
+        bankAccount: { type: string, example: '1234567890' }
+        ifsc: { type: string, example: HDFC0001234 }
+        razorpayAccountId: { type: string }
+    Plan:
+      type: object
+      properties:
+        id: { type: string, enum: [FREE, PRO] }
+        name: { type: string }
+        price: { type: integer, description: paise per month }
+        studentLimit: { type: integer, nullable: true, description: null = unlimited }
+        features:
+          type: array
+          items: { type: string }
+    SubscriptionStatus:
+      type: object
+      properties:
+        plan: { type: string, enum: [FREE, PRO] }
+        planName: { type: string }
+        price: { type: integer, description: paise per month }
+        status: { type: string, enum: [ACTIVE, INACTIVE] }
+        studentLimit: { type: integer, nullable: true }
+        studentCount: { type: integer }
+        plans:
+          type: array
+          items: { $ref: '#/components/schemas/Plan' }

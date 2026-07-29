@@ -57,3 +57,16 @@ is usable on its own. Check items off as they land, and keep Memory.md updated.
 - Wire external cron (GitHub Actions / cron-job.org / QStash) to internal endpoints.
 - Deploy: Vercel (frontend) + Render/Railway (backend) + Supabase (db); register webhook URL.
 - Observability: request logging, error alerts.
+
+
+## Frontend delivery — Lovable (API-driven)
+
+The frontend is being built in **Lovable** against the existing REST API rather than using the
+bundled `/frontend` React app (which stays as a working reference implementation).
+
+- API contract: `backend/openapi.yaml`, served live at `GET /openapi.yaml`.
+- Human reference + copy-paste Lovable prompt: `docs/API.md`.
+- CORS: add the Lovable domain(s) to `FRONTEND_ORIGIN` — wildcards like `*.lovableproject.com`
+  are supported.
+- Lovable must consume this API (via `VITE_API_URL`) and NOT create its own backend/Supabase.
+- All money from the API is in paise; `monthlyFee` is sent in rupees on create/update.

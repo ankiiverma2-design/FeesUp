@@ -14,6 +14,9 @@
   flip `PAYMENT_PROVIDER=razorpay` / `MESSAGING_PROVIDER=payperwa` + add keys to go live.
 - **Tooling in place:** unit tests (`npm test`, 12 passing), CI on every push, GitHub Actions
   scheduled cron, and deploy configs for Vercel + Render + Supabase.
+- **API is documented for external frontends:** `backend/openapi.yaml` (served at `/openapi.yaml`)
+  + `docs/API.md` with a Lovable prompt. Frontend will be built in **Lovable** against this API;
+  `/frontend` remains a working reference. CORS accepts Lovable wildcard origins.
 - **Next up:** merge PR #1 (after local smoke test), then deploy following `docs/DEPLOYMENT.md`.
   Remaining steps are all "your account" tasks: Supabase URL, Razorpay test keys + webhook,
   PayPerWA key + Meta template approval. Later: real subscription billing, Model A Route split,
@@ -58,6 +61,15 @@
 - No automated tests yet (none requested). Add in Phase 5.
 
 ## Changelog
+### 2026-07-09 — Lovable-ready API layer
+- Decision: frontend will be built in **Lovable** against this API (the `/frontend` React app
+  becomes a reference implementation, still valid).
+- CORS now supports exact + wildcard origins (`*.lovableproject.com`) + "*" via `isAllowedOrigin`.
+- Added `backend/openapi.yaml` (OpenAPI 3.0.3, all public endpoints) + served at `GET /openapi.yaml`.
+- Added `docs/API.md`: endpoint reference, conventions (paise, JWT, derived OVERDUE), screens,
+  brand theme, and a copy-paste Lovable prompt.
+- Updated `.env.example` FRONTEND_ORIGIN guidance for Lovable domains.
+
 ### 2026-07-09 — Hardening, tests, CI & deploy configs
 - Extracted pure `lib/reminderLogic.js` (determineReminderType) and **fixed a pre-due sign
   bug** (now fires when daysUntilDue === 3). Renamed config to `REMINDER_RULES`.

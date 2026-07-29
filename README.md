@@ -34,6 +34,12 @@ Vercel + Render + Supabase.
 To deploy / go live, follow **`docs/DEPLOYMENT.md`**. WhatsApp template texts for Meta approval
 are in **`docs/WhatsAppTemplates.md`**.
 
+**Frontend options:** this repo ships a reference React UI in `/frontend`, but the frontend can
+also be built separately (e.g. in **Lovable**) against this API. See **`docs/API.md`** for the
+endpoint reference + a copy-paste Lovable prompt, and **`backend/openapi.yaml`** (served live at
+`GET /openapi.yaml`) for the machine-readable contract. CORS accepts Lovable preview domains via
+`FRONTEND_ORIGIN` wildcards (e.g. `*.lovableproject.com`).
+
 Next: real subscription billing and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
 
 ## Tech stack
