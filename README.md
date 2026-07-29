@@ -84,8 +84,10 @@ Legend: [done] already done for you · [you] you do this (account/click).
 5. **[you] Deploy backend — Render**: New + → Blueprint → this repo (reads `backend/render.yaml`).
    Set `DATABASE_URL`, `JWT_SECRET`, `INTERNAL_JOB_SECRET`, and `FRONTEND_ORIGIN`. Tables
    auto-create on boot (`prisma db push`). Check `/health`.
-6. **[you] Deploy frontend**: either build the UI in **Lovable** (use the prompt in `docs/API.md`
-   and point it at your API + `/openapi.yaml`), or deploy the bundled `/frontend` to **Vercel**
+6. **[you] Deploy frontend**: **simplest path — build the whole app in Lovable** using the
+   paste-ready brief in **`docs/LOVABLE_BRIEF.md`** (Lovable uses React + Supabase and handles
+   all the code). Alternatively, build only the UI against this API (`docs/API.md` +
+   `/openapi.yaml`), or deploy the bundled `/frontend` to **Vercel**
    (Root Directory = `frontend`, set `VITE_API_URL`). Then add the frontend URL to the backend
    `FRONTEND_ORIGIN` (wildcards like `*.lovableproject.com` are supported).
 7. **[you] Scheduled reminders — GitHub Actions**: add repo secrets `API_URL` and
