@@ -53,7 +53,20 @@ Next: real subscription billing and Model A (Razorpay Route + 1% split). See `do
 ## Prerequisites
 
 - Node.js 18+ (20+ recommended)
-- A PostgreSQL database (local Postgres or a free Supabase project)
+- A PostgreSQL database — use the included `docker compose up -d`, or a free Supabase project
+
+## Quick start (local)
+
+```bash
+docker compose up -d                 # Postgres on localhost:5432 (matches backend/.env.example)
+cd backend && cp .env.example .env   # set JWT_SECRET
+npm install && npx prisma db push && npm run dev
+# new terminal
+cd frontend && cp .env.example .env  # set VITE_API_URL=http://localhost:4000
+npm install && npm run dev           # http://localhost:5173
+```
+
+**Going live?** Follow **`docs/FINISH.md`** — the single, ordered checklist to production.
 
 ## Setup
 

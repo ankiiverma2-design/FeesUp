@@ -20,20 +20,28 @@ Flip them to live when ready — no code changes.
 Verify locally (below), then merge so `main` holds the code. Deploys track `main`.
 
 ### Local smoke test
+The fastest way to get a local Postgres is Docker (a `docker-compose.yml` is included):
 ```bash
+docker compose up -d          # starts Postgres on localhost:5432 (matches .env.example)
+
 # backend
-cd backend && cp .env.example .env      # set DATABASE_URL + JWT_SECRET
-npm install && npx prisma migrate dev && npm test && npm run dev
+cd backend && cp .env.example .env      # DATABASE_URL already matches docker-compose; set JWT_SECRET
+npm install && npx prisma db push && npm test && npm run dev
 # frontend (new terminal)
 cd frontend && cp .env.example .env      # set VITE_API_URL=http://localhost:4000
 npm install && npm run dev               # http://localhost:5173
 ```
 Sign up, add a student, toggle paid/pending, open Settings. If that works, merge.
 
+> **Schema sync:** we use `prisma db push` (syncs `schema.prisma` to the DB) because no
+> migration history is committed yet. When you want versioned migrations, run
+> `npx prisma migrate dev --name init` once, commit the generated `prisma/migrations/`, and
+> switch the Render start command to `prisma migrate deploy`.
+
 ## 2. Database — Supabase  **[you]**
 1. Create a project at supabase.com (free tier).
 2. Project Settings > Database > Connection string (URI). Copy it — this is `DATABASE_URL`.
-3. Migrations are applied automatically by the backend on deploy (`prisma migrate deploy`).
+3. Tables are created automatically by the backend on deploy (`prisma db push`).
 
 ## 3. Backend — Render  **[you]**
 1. On Render: New + > Blueprint, connect this repo. It reads `backend/render.yaml`.

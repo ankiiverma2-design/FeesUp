@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "FeesUp API",
+    "description": "Click-test the FeesUp API. Set the `baseUrl` collection variable (default http://localhost:4000). Run 'Auth > Signup' or 'Auth > Login' first — they save the JWT into the `token` variable automatically, and every other request uses it.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "token", "value": "" },
+    { "key": "studentId", "value": "" },
+    { "key": "feeRecordId", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health", "auth": { "type": "noauth" } }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Signup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.token) pm.collectionVariables.set('token', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Priya Tutor\",\n  \"email\": \"priya@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/signup"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.token) pm.collectionVariables.set('token', b.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "auth": { "type": "noauth" },
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"priya@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Me",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" }
+        }
+      ]
+    },
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "List students",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/students" }
+        },
+        {
+          "name": "Create student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.student && b.student.id) pm.collectionVariables.set('studentId', b.student.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentName\": \"Aarav Sharma\",\n  \"parentName\": \"Rohit Sharma\",\n  \"parentWhatsapp\": \"+919812345678\",\n  \"monthlyFee\": 2000,\n  \"feeDueDay\": 5\n}"
+            },
+            "url": "{{baseUrl}}/api/students"
+          }
+        },
+        {
+          "name": "Update student",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthlyFee\": 2500\n}"
+            },
+            "url": "{{baseUrl}}/api/students/{{studentId}}"
+          }
+        },
+        {
+          "name": "Delete student",
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/api/students/{{studentId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get dashboard (current month)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const b = pm.response.json();",
+                  "if (b.rows && b.rows[0]) pm.collectionVariables.set('feeRecordId', b.rows[0].feeRecordId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard?month=&year=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "dashboard"],
+              "query": [
+                { "key": "month", "value": "", "description": "1-12 (optional)" },
+                { "key": "year", "value": "", "description": "e.g. 2026 (optional)" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fee Records",
+      "item": [
+        {
+          "name": "Mark paid / pending",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"PAID\"\n}" },
+            "url": "{{baseUrl}}/api/fee-records/{{feeRecordId}}/status"
+          }
+        },
+        {
+          "name": "Generate payment link",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/fee-records/{{feeRecordId}}/payment-link" }
+        },
+        {
+          "name": "Send reminder",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/fee-records/{{feeRecordId}}/remind" }
+        }
+      ]
+    },
+    {
+      "name": "Tutor",
+      "item": [
+        {
+          "name": "Update profile / onboarding",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+919812345678\",\n  \"panNumber\": \"ABCDE1234F\",\n  \"bankAccount\": \"1234567890\",\n  \"ifsc\": \"HDFC0001234\"\n}"
+            },
+            "url": "{{baseUrl}}/api/tutor/profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscription",
+      "item": [
+        {
+          "name": "Get subscription",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/subscription" }
+        },
+        {
+          "name": "Upgrade to Pro",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/subscription/upgrade" }
+        },
+        {
+          "name": "Cancel (downgrade to Free)",
+          "request": { "method": "POST", "url": "{{baseUrl}}/api/subscription/cancel" }
+        }
+      ]
+    }
+  ]
+}

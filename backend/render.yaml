@@ -10,8 +10,10 @@ services:
     rootDir: backend
     plan: free
     buildCommand: npm install && npx prisma generate
-    # Applies pending migrations, then starts the server.
-    startCommand: npx prisma migrate deploy && node src/server.js
+    # Syncs the schema to the database (creates/updates tables), then starts the server.
+    # Uses `db push` because no migration history is committed yet; switch to
+    # `prisma migrate deploy` once you generate migrations (see docs/DEPLOYMENT.md).
+    startCommand: npx prisma db push --skip-generate && node src/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

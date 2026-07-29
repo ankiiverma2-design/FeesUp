@@ -17,10 +17,10 @@
 - **API is documented for external frontends:** `backend/openapi.yaml` (served at `/openapi.yaml`)
   + `docs/API.md` with a Lovable prompt. Frontend will be built in **Lovable** against this API;
   `/frontend` remains a working reference. CORS accepts Lovable wildcard origins.
-- **Next up:** merge PR #1 (after local smoke test), then deploy following `docs/DEPLOYMENT.md`.
-  Remaining steps are all "your account" tasks: Supabase URL, Razorpay test keys + webhook,
-  PayPerWA key + Meta template approval. Later: real subscription billing, Model A Route split,
-  route/webhook integration tests with a test DB.
+- **Next up:** everything code-side is done. Remaining work is user-only account/click steps —
+  follow **`docs/FINISH.md`** (local run → merge → Supabase → Render → frontend/Lovable →
+  GitHub cron secrets → Razorpay test keys + webhook → PayPerWA + Meta template approval).
+  Optional later: versioned migrations, real subscription billing, Model A Route split.
 
 ## Locked decisions
 - **Money model:** Model B (SaaS-only) for launch. Tutors connect their own Razorpay later;
@@ -61,6 +61,16 @@
 - No automated tests yet (none requested). Add in Phase 5.
 
 ## Changelog
+### 2026-07-09 — Finalization: DB, tests, Docker, Postman, FINISH checklist
+- DB provisioning fixed: no migration files exist, so Render + CI use `prisma db push`
+  (render.yaml startCommand + CI). Documented switching to migrations later.
+- `docker-compose.yml` (Postgres 16) at repo root for one-command local DB (matches .env).
+- Integration smoke test `backend/test/integration/api.test.js` (guarded by RUN_INTEGRATION +
+  DATABASE_URL; lazy-requires app). Local `npm test` = 12 unit pass + 1 integration skipped.
+- CI `integration` job added: postgres:16 service + `prisma db push` + `node --test test/integration/`.
+- `docs/FeesUp.postman_collection.json` (auto-saves token on login/signup, all endpoints).
+- `docs/FINISH.md`: single consolidated go-live checklist (🟢 done vs 🔵 user-only steps).
+
 ### 2026-07-09 — Lovable-ready API layer
 - Decision: frontend will be built in **Lovable** against this API (the `/frontend` React app
   becomes a reference implementation, still valid).
