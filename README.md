@@ -66,7 +66,41 @@ cd frontend && cp .env.example .env  # set VITE_API_URL=http://localhost:4000
 npm install && npm run dev           # http://localhost:5173
 ```
 
-**Going live?** Follow **`docs/FINISH.md`** — the single, ordered checklist to production.
+**Going live?** The full ordered checklist is in **`docs/FINISH.md`**; it's summarized below.
+
+## Remaining steps to go live
+
+The code is complete, tested, and self-verifying (CI). What's left are steps that require
+**your own accounts and clicks** — no coding needed. Do them top to bottom.
+
+Legend: [done] already done for you · [you] you do this (account/click).
+
+1. **[done] App built** — backend, reference frontend, tests, CI, deploy configs, docs.
+2. **[you] Run locally once** (~10 min): `docker compose up -d`, then start backend + frontend
+   (see Quick start above). Sign up, add a student, mark paid, open Settings.
+3. **[you] Merge PR #1** so `main` holds everything (skip if already pushed to `main`).
+4. **[you] Database — Supabase**: create a free project, copy the Postgres connection string —
+   that becomes your `DATABASE_URL`.
+5. **[you] Deploy backend — Render**: New + → Blueprint → this repo (reads `backend/render.yaml`).
+   Set `DATABASE_URL`, `JWT_SECRET`, `INTERNAL_JOB_SECRET`, and `FRONTEND_ORIGIN`. Tables
+   auto-create on boot (`prisma db push`). Check `/health`.
+6. **[you] Deploy frontend**: either build the UI in **Lovable** (use the prompt in `docs/API.md`
+   and point it at your API + `/openapi.yaml`), or deploy the bundled `/frontend` to **Vercel**
+   (Root Directory = `frontend`, set `VITE_API_URL`). Then add the frontend URL to the backend
+   `FRONTEND_ORIGIN` (wildcards like `*.lovableproject.com` are supported).
+7. **[you] Scheduled reminders — GitHub Actions**: add repo secrets `API_URL` and
+   `INTERNAL_JOB_SECRET` (matching Render). Daily reminders + monthly fee generation then run
+   automatically.
+8. **[you] Payments — Razorpay (test mode, no KYC)**: generate test API keys, set
+   `PAYMENT_PROVIDER=razorpay` + keys on Render. Add webhook
+   `https://<api>/api/webhooks/razorpay` for `payment_link.paid` and set
+   `RAZORPAY_WEBHOOK_SECRET`. (Real money later = finish KYC, swap to live keys.)
+9. **[you] WhatsApp — PayPerWA**: create an account, **submit the 3 templates in
+   `docs/WhatsAppTemplates.md` to Meta for approval** (start early — approval takes time), then
+   set `MESSAGING_PROVIDER=payperwa` + key/base URL.
+
+**Optional later:** versioned DB migrations (`prisma migrate dev`), real subscription billing,
+and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
 
 ## Setup
 
@@ -76,7 +110,7 @@ npm install && npm run dev           # http://localhost:5173
 cd backend
 cp .env.example .env        # then fill in DATABASE_URL and JWT_SECRET
 npm install
-npx prisma migrate dev      # creates tables
+npx prisma db push          # creates tables from the schema
 npm run dev                 # starts API on http://localhost:4000
 ```
 
