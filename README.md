@@ -67,6 +67,7 @@ npm install && npm run dev           # http://localhost:5173
 ```
 
 **Going live?** The full ordered checklist is in **`docs/FINISH.md`**; it's summarized below.
+To turn on Razorpay payments and WhatsApp reminders later, see **`docs/INTEGRATIONS.md`**.
 
 ## Remaining steps to go live
 
