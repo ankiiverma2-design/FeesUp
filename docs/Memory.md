@@ -88,7 +88,7 @@
 - CI: `.github/workflows/ci.yml` (backend install/prisma/validate/test + frontend build).
 - Scheduled jobs: `.github/workflows/scheduled-jobs.yml` (daily reminders, monthly fee gen)
   hitting `/internal/jobs/*` with `INTERNAL_JOB_SECRET` — free, host-agnostic.
-- Deploy configs: `frontend/vercel.json`, `backend/render.yaml`, `.nvmrc` (20) both apps.
+- Deploy configs: `frontend/vercel.json`, `render.yaml` (repo root), `.nvmrc` (20) both apps.
 - Docs: `docs/WhatsAppTemplates.md` (3 Meta-ready templates) + `docs/DEPLOYMENT.md` (go-live).
 
 ### 2026-07-09 — Phases 2–4 built

@@ -34,7 +34,7 @@ Once local looks good, merge the pull request so `main` holds the code. CI will 
 Create a free project → copy the Postgres connection string → that's your `DATABASE_URL`.
 
 ## 4. Deploy the backend — Render 🔵 (~10 min)
-New + → Blueprint → pick this repo (reads `backend/render.yaml`). Set `DATABASE_URL`,
+New + → Blueprint → pick this repo (reads `render.yaml` at the repo root). Set `DATABASE_URL`,
 `INTERNAL_JOB_SECRET` (any long string), and later `FRONTEND_ORIGIN`. Tables auto-create on
 boot (`prisma db push`). Check `/health`.
 

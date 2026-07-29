@@ -6,7 +6,7 @@ already wired in the repo.
 
 ## Overview
 - **Database:** Supabase (Postgres, free tier)
-- **Backend API:** Render (free web service) — `backend/render.yaml` blueprint included
+- **Backend API:** Render (free web service) — `render.yaml` (repo root) blueprint included
 - **Frontend:** Vercel — `frontend/vercel.json` included
 - **Scheduled jobs:** GitHub Actions cron — `.github/workflows/scheduled-jobs.yml` (free)
 - **CI:** GitHub Actions — `.github/workflows/ci.yml` (build + tests on every push)
@@ -44,7 +44,8 @@ Sign up, add a student, toggle paid/pending, open Settings. If that works, merge
 3. Tables are created automatically by the backend on deploy (`prisma db push`).
 
 ## 3. Backend — Render  **[you]**
-1. On Render: New + > Blueprint, connect this repo. It reads `backend/render.yaml`.
+1. On Render: New + > Blueprint, connect this repo. It reads `render.yaml` from the repo root
+   (the service builds from `/backend`).
 2. Set the env vars marked `sync: false`:
    - `DATABASE_URL` = your Supabase URI
    - `FRONTEND_ORIGIN` = your Vercel URL (fill after step 4; can update later)

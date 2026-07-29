@@ -81,7 +81,7 @@ Legend: [done] already done for you · [you] you do this (account/click).
 3. **[you] Merge PR #1** so `main` holds everything (skip if already pushed to `main`).
 4. **[you] Database — Supabase**: create a free project, copy the Postgres connection string —
    that becomes your `DATABASE_URL`.
-5. **[you] Deploy backend — Render**: New + → Blueprint → this repo (reads `backend/render.yaml`).
+5. **[you] Deploy backend — Render**: New + → Blueprint → this repo (reads `render.yaml` at root).
    Set `DATABASE_URL`, `JWT_SECRET`, `INTERNAL_JOB_SECRET`, and `FRONTEND_ORIGIN`. Tables
    auto-create on boot (`prisma db push`). Check `/health`.
 6. **[you] Deploy frontend**: **simplest path — build the whole app in Lovable** using the
