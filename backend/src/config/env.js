@@ -32,4 +32,20 @@ const env = {
   },
 };
 
+// In production, refuse to boot with weak or default secrets — prevents accidentally shipping
+// a guessable JWT signing key or internal-job secret.
+function assertStrongSecretsInProduction(e) {
+  if (e.nodeEnv !== 'production') return;
+  const isWeak = (v) => !v || v.length < 16 || /change[-_ ]?me/i.test(v);
+  const problems = [];
+  if (isWeak(e.jwtSecret)) problems.push('JWT_SECRET');
+  if (isWeak(e.internalJobSecret)) problems.push('INTERNAL_JOB_SECRET');
+  if (problems.length) {
+    throw new Error(
+      `Insecure ${problems.join(' and ')} in production: use a strong random value (>= 16 chars).`
+    );
+  }
+}
+assertStrongSecretsInProduction(env);
+
 module.exports = { env };

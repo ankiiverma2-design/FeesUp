@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 const { env } = require('./config/env');
 const { notFoundHandler, errorHandler } = require('./middleware/error');
 
@@ -17,6 +18,12 @@ const tutorRoutes = require('./routes/tutor.routes');
 const subscriptionRoutes = require('./routes/subscription.routes');
 
 const app = express();
+
+// Deployed behind a proxy (Render). Trust the first hop so client IPs used for rate limiting
+// are accurate (and express-rate-limit doesn't key everyone to the proxy IP).
+app.set('trust proxy', 1);
+// Don't advertise the framework.
+app.disable('x-powered-by');
 
 app.use(helmet());
 
@@ -47,10 +54,22 @@ app.use(
 // body bytes. The webhook router applies its own express.raw() parser.
 app.use('/api/webhooks', webhookRoutes);
 
-app.use(express.json());
+// Cap JSON body size to blunt payload-based abuse.
+app.use(express.json({ limit: '100kb' }));
 if (env.nodeEnv !== 'test') {
   app.use(morgan('dev'));
 }
+
+// Global rate limit for the API surface (auth + reminder routes add their own stricter caps).
+// Note: /api/webhooks is mounted earlier, so provider webhooks (with retries) are not throttled.
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: { message: 'Too many requests, please slow down' } },
+});
+app.use('/api', apiLimiter);
 
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'feesup-api' }));

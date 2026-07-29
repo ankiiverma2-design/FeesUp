@@ -17,6 +17,7 @@ function signToken(tutor) {
   return jwt.sign({ email: tutor.email }, env.jwtSecret, {
     subject: tutor.id,
     expiresIn: env.jwtExpiresIn,
+    algorithm: 'HS256',
   });
 }
 

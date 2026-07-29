@@ -11,7 +11,7 @@ const router = express.Router();
  */
 router.post(
   '/razorpay',
-  express.raw({ type: '*/*' }),
+  express.raw({ type: '*/*', limit: '1mb' }),
   asyncHandler(async (req, res) => {
     const signature = req.headers['x-razorpay-signature'];
     const eventId = req.headers['x-razorpay-event-id'];

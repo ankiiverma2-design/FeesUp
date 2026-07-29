@@ -16,7 +16,8 @@ const requireAuth = (req, _res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, env.jwtSecret);
+    // Pin the algorithm to prevent algorithm-confusion attacks.
+    const payload = jwt.verify(token, env.jwtSecret, { algorithms: ['HS256'] });
     req.tutor = { id: payload.sub, email: payload.email };
     return next();
   } catch (err) {
