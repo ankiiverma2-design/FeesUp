@@ -282,12 +282,23 @@ paths:
     post:
       tags: [Subscription]
       summary: Upgrade to Pro (unlimited students)
+      description: >
+        With PAYMENT_PROVIDER=mock, activates Pro immediately.
+        With PAYMENT_PROVIDER=razorpay, returns a Payment Link; Pro activates on the
+        payment_link.paid webhook (notes.purpose=subscription).
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/SubscriptionStatus' }
+              schema:
+                allOf:
+                  - { $ref: '#/components/schemas/SubscriptionStatus' }
+                  - type: object
+                    properties:
+                      activated: { type: boolean }
+                      paymentLink: { type: string, description: Present when billing is live and payment is still pending }
+                      razorpayPaymentLinkId: { type: string }
         '400': { $ref: '#/components/responses/Error' }
 
   /api/subscription/cancel:
@@ -462,6 +473,9 @@ components:
         status: { type: string, enum: [ACTIVE, INACTIVE] }
         studentLimit: { type: integer, nullable: true }
         studentCount: { type: integer }
+        activated: { type: boolean, description: Present on upgrade responses }
+        paymentLink: { type: string, description: Razorpay link when upgrade is pending payment }
+        razorpayPaymentLinkId: { type: string }
         plans:
           type: array
           items: { $ref: '#/components/schemas/Plan' }

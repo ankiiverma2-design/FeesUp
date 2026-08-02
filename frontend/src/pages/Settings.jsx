@@ -73,7 +73,19 @@ export default function Settings() {
     try {
       const { data } = await api.post(`/api/subscription/${action}`);
       setSub(data);
-      flash(action === 'upgrade' ? 'Upgraded to Pro' : 'Switched to Free');
+      if (action === 'upgrade') {
+        if (data.paymentLink) {
+          flash('Payment link ready — complete payment to activate Pro');
+          window.open(data.paymentLink, '_blank', 'noopener,noreferrer');
+        } else if (data.activated) {
+          flash('Upgraded to Pro');
+        } else {
+          flash('Upgrade started');
+        }
+      } else {
+        flash('Switched to Free');
+      }
+      await refreshTutor();
     } catch (err) {
       setError(apiErrorMessage(err));
     } finally {
@@ -165,9 +177,18 @@ export default function Settings() {
                   );
                 })}
               </div>
+              {sub.paymentLink && sub.plan === 'FREE' && (
+                <p className="mt-3 text-xs text-brand-accent">
+                  Payment pending.{' '}
+                  <a href={sub.paymentLink} target="_blank" rel="noreferrer" className="underline">
+                    Open payment link
+                  </a>{' '}
+                  to activate Pro.
+                </p>
+              )}
               <p className="mt-3 text-xs text-white/30">
-                Note: upgrade activates immediately in this build. Live Razorpay subscription
-                billing plugs into the same action later.
+                Mock mode activates Pro immediately. With Razorpay, upgrade creates a ₹199
+                Payment Link and Pro unlocks after the paid webhook.
               </p>
             </>
           )}

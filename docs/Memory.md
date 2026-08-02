@@ -5,22 +5,23 @@
 > meaningful change.** Newest entry on top.
 
 ## Current state (snapshot)
-- **Phases complete:** 0, 1, 2, 3, 4 — feature-complete against mock/test providers.
+- **Phases complete:** 0, 1, 2, 3, 4, 5 — feature-complete against mock/test providers; hardened.
 - **App does:** signup/login; student CRUD (10-cap + soft delete); monthly fee records;
   dashboard with status + summary; manual mark paid/pending; Razorpay payment links + webhook
   auto-mark-paid; WhatsApp reminders (3 templates, manual trigger + daily sweep); subscription
-  (Free/Pro) + tutor onboarding (PAN/bank) via a Settings page.
+  (Free/Pro — mock activates immediately; Razorpay issues a ₹199 Payment Link and webhook
+  activates Pro) + tutor onboarding (PAN/bank) via a Settings page.
 - **Providers:** mock by default; real Razorpay (test mode) and PayPerWA adapters wired —
   flip `PAYMENT_PROVIDER=razorpay` / `MESSAGING_PROVIDER=payperwa` + add keys to go live.
-- **Tooling in place:** unit tests (`npm test`, 12 passing), CI on every push, GitHub Actions
-  scheduled cron, and deploy configs for Vercel + Render + Supabase.
+- **Tooling in place:** unit tests (`npm test`, 30 passing + 1 integration skipped), CI on every
+  push, GitHub Actions scheduled cron, and deploy configs for Vercel + Render + Supabase.
 - **API is documented for external frontends:** `backend/openapi.yaml` (served at `/openapi.yaml`)
   + `docs/API.md` with a Lovable prompt. Frontend will be built in **Lovable** against this API;
   `/frontend` remains a working reference. CORS accepts Lovable wildcard origins.
 - **Next up:** everything code-side is done. Remaining work is user-only account/click steps —
-  follow **`docs/FINISH.md`** (local run → merge → Supabase → Render → frontend/Lovable →
+  follow **`docs/FINISH.md`** (local run → Supabase → Render → frontend/Lovable →
   GitHub cron secrets → Razorpay test keys + webhook → PayPerWA + Meta template approval).
-  Optional later: versioned migrations, real subscription billing, Model A Route split.
+  Optional later: versioned migrations, recurring Razorpay Subscriptions, Model A Route split.
 
 ## Locked decisions
 - **Money model:** Model B (SaaS-only) for launch. Tutors connect their own Razorpay later;
@@ -47,20 +48,23 @@
 ## Open items / TODO for next session
 - Submit the 3 WhatsApp templates (`config/reminderTemplates.js`) to Meta for approval.
 - Confirm PayPerWA's exact request/response shape and adjust `PayPerWAMessagingProvider`.
-- Replace the immediate `subscription.upgrade` with real Razorpay subscription billing
-  (activate on the subscription webhook).
-- Productionise Model B payouts: pay each tutor into their own account (Route/OAuth).
-- Phase 5: tests (auth, tenant scoping, fee generation, webhook idempotency), external cron
-  wiring to `/internal/jobs/*`, deploy, register the Razorpay webhook URL.
+- User go-live clicks: follow `docs/FINISH.md` (Supabase, Render, Vercel/Lovable, secrets, keys).
+- Optional later: versioned Prisma migrations; recurring Razorpay Subscriptions; Model A Route.
 
 ## Known limitations / caveats
-- `npm install`, `vite build`, and `prisma migrate` were **not run** in the build sandbox
-  (npm registry blocked). Run locally/CI to confirm install + build + migrations.
 - Razorpay + subscription run in test/mock; going live needs KYC + real keys.
 - PayPerWA request shape is a best-effort default pending confirmation against their docs.
-- No automated tests yet (none requested). Add in Phase 5.
+- Pro billing uses monthly Payment Links (not Razorpay Subscriptions recurrence yet).
 
 ## Changelog
+### 2026-08-02 — Phase 5 complete: Pro billing + hardening tests
+- Pro upgrade: mock activates immediately; Razorpay creates a ₹199 Payment Link; webhook
+  activates Pro when `notes.purpose=subscription` on `payment_link.paid`.
+- Shared webhook path now handles fee PAID and SUBSCRIPTION_PAID.
+- Extracted `lib/cors.js`; production morgan `combined` logging.
+- Added unit tests for auth, CORS, deriveStatus, payment providers (30 pass, 1 integration skip).
+- Marked Phase 5 done in Phases.md / tasks.md; Settings UI opens payment link when returned.
+
 ### 2026-07-09 — Finalization: DB, tests, Docker, Postman, FINISH checklist
 - DB provisioning fixed: no migration files exist, so Render + CI use `prisma db push`
   (render.yaml startCommand + CI). Documented switching to migrations later.

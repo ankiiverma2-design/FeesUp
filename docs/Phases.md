@@ -30,7 +30,6 @@ is usable on its own. Check items off as they land, and keep Memory.md updated.
   mark Paid with timestamp + payment id, upsert `Payment`.
 - Frontend: "Get link" generates, "Copy link" copies; paid status + txn id shown.
 - Works in Razorpay **test mode** — no KYC needed. Set `PAYMENT_PROVIDER=razorpay` + keys.
-- TODO (productionise Model B): pay each tutor into their own account via Route/OAuth.
 
 ## Phase 3 — WhatsApp reminders (PayPerWA)  ✅ DONE
 - `PayPerWAMessagingProvider` (sends approved templates by name + ordered variables).
@@ -43,20 +42,29 @@ is usable on its own. Check items off as they land, and keep Memory.md updated.
 - Runs on mock offline; set `MESSAGING_PROVIDER=payperwa` + keys and confirm the request
   shape against PayPerWA docs to go live.
 
-## Phase 4 — Monetisation & onboarding  ✅ DONE (billing mocked)
+## Phase 4 — Monetisation & onboarding  ✅ DONE
 - Plans in `config/plans.js` (Free = 10 students, Pro = ₹199/mo unlimited).
 - `GET /api/subscription`, `POST /api/subscription/upgrade|cancel`; free-tier cap enforced on
   student creation.
 - Tutor onboarding `PATCH /api/tutor/profile` (name, phone, PAN, bank account, IFSC) with
   validation. Settings page in the frontend (billing + profile).
-- TODO: real Razorpay subscription billing behind `upgrade`; (optional) Route linked accounts
-  + 1% split (Model A).
+- Pro upgrade billing: mock activates immediately; Razorpay creates a ₹199 Payment Link and
+  the shared webhook flips the plan on `payment_link.paid` (`notes.purpose=subscription`).
 
-## Phase 5 — Hardening & deploy  ⏳ NEXT
-- Add tests around auth, tenant scoping, fee generation, webhook idempotency.
-- Wire external cron (GitHub Actions / cron-job.org / QStash) to internal endpoints.
-- Deploy: Vercel (frontend) + Render/Railway (backend) + Supabase (db); register webhook URL.
-- Observability: request logging, error alerts.
+## Phase 5 — Hardening & deploy  ✅ DONE
+- Unit tests: auth (JWT + alg pinning), CORS origins, fee status derivation, payment providers
+  (HMAC + fee/subscription webhook parse), reminder logic, time/format — 30 passing.
+- Integration smoke test (auth, tenant isolation, students, dashboard, mark paid) behind
+  `RUN_INTEGRATION=1`.
+- External cron: GitHub Actions scheduled-jobs workflow → `/internal/jobs/*`.
+- Deploy configs: Vercel (frontend) + Render (`render.yaml`) + Supabase (db).
+- Observability: morgan `combined` access logs in production, `dev` locally; Helmet; structured
+  API errors.
+
+## Optional later (not required to launch)
+- Versioned DB migrations: `npx prisma migrate dev --name init`, then `prisma migrate deploy`.
+- Recurring Razorpay Subscriptions (instead of monthly Payment Links for Pro).
+- Model A: Razorpay Route linked accounts + 1% split (per-tutor payouts).
 
 
 ## Frontend delivery — Lovable (API-driven)

@@ -9,8 +9,8 @@ const RAZORPAY_API = 'https://api.razorpay.com/v1';
  *
  * Model B note: for launch this uses the platform's Razorpay keys. Productionising "each tutor
  * gets paid into their own account" would use Razorpay Route linked accounts / OAuth — see
- * docs/Phases.md (Phase 4). The rest of the app is unaffected because it only talks to this
- * interface.
+ * docs/Phases.md (optional later). The rest of the app is unaffected because it only talks to
+ * this interface.
  */
 class RazorpayPaymentProvider extends PaymentProvider {
   constructor({ keyId, keySecret, webhookSecret }) {
@@ -24,7 +24,19 @@ class RazorpayPaymentProvider extends PaymentProvider {
     this.authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
   }
 
-  async createPaymentLink({ feeRecordId, studentId, tutorId, amount, month, year, description, customer }) {
+  async createPaymentLink({
+    feeRecordId,
+    studentId,
+    tutorId,
+    referenceId,
+    purpose,
+    amount,
+    month,
+    year,
+    description,
+    customer,
+    notes: extraNotes,
+  }) {
     const body = {
       amount, // paise
       currency: 'INR',
@@ -32,13 +44,16 @@ class RazorpayPaymentProvider extends PaymentProvider {
       // We deliver the link over WhatsApp ourselves, so disable Razorpay's own notifications.
       notify: { sms: false, email: false },
       reminder_enable: false,
-      reference_id: feeRecordId, // unique per fee record; prevents accidental duplicates
+      // Unique per fee record / subscription period; prevents accidental duplicates.
+      reference_id: referenceId || feeRecordId,
       notes: {
-        feeRecordId,
-        studentId,
+        purpose: purpose || 'fee',
+        feeRecordId: feeRecordId || '',
+        studentId: studentId || '',
         tutorId: tutorId || '',
-        month: String(month),
-        year: String(year),
+        month: month != null ? String(month) : '',
+        year: year != null ? String(year) : '',
+        ...(extraNotes || {}),
       },
     };
     if (customer && (customer.name || customer.contact || customer.email)) {
@@ -78,22 +93,34 @@ class RazorpayPaymentProvider extends PaymentProvider {
 
   /**
    * Normalize a Razorpay webhook event into a vendor-agnostic shape the service can act on.
-   * Handles the `payment_link.paid` event; returns null for events we don't care about.
+   * Handles the `payment_link.paid` event for tuition fees and Pro subscription upgrades.
    */
   parseWebhookEvent(event) {
     if (!event || event.event !== 'payment_link.paid') return null;
     const link = event.payload?.payment_link?.entity || {};
     const payment = event.payload?.payment?.entity || {};
     const notes = link.notes || {};
+    const purpose = notes.purpose || 'fee';
+    const base = {
+      paymentId: payment.id || null,
+      amount: payment.amount || link.amount || null,
+      status: payment.status || 'captured',
+    };
+    if (purpose === 'subscription') {
+      return {
+        ...base,
+        type: 'SUBSCRIPTION_PAID',
+        tutorId: notes.tutorId || null,
+        plan: notes.plan || 'PRO',
+      };
+    }
     return {
+      ...base,
       type: 'PAID',
       feeRecordId: notes.feeRecordId || null,
       studentId: notes.studentId || null,
       month: notes.month ? Number(notes.month) : null,
       year: notes.year ? Number(notes.year) : null,
-      paymentId: payment.id || null,
-      amount: payment.amount || link.amount || null,
-      status: payment.status || 'captured',
     };
   }
 }
