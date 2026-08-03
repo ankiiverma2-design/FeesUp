@@ -21,6 +21,23 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Expired or invalid token → clear session and send user to login (except auth endpoints).
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const status = err?.response?.status;
+    const url = err?.config?.url || '';
+    const isAuthRoute = /\/api\/auth\/(login|signup)/.test(url);
+    if (status === 401 && !isAuthRoute && getToken()) {
+      setToken(null);
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.assign('/login');
+      }
+    }
+    return Promise.reject(err);
+  }
+);
+
 // Normalize API error messages for the UI.
 export function apiErrorMessage(err) {
   return (

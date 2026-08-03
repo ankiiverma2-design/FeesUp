@@ -132,6 +132,12 @@ npm run dev                 # starts app on http://localhost:5173
 
 Open http://localhost:5173, sign up as a tutor, and start adding students.
 
+## How users log in
+
+Tutors use **email + password** (JWT). Routes: `/login` and `/signup`. After signup or login the
+app stores a token and opens the dashboard. Demo account (after `npm run seed`):
+`demo@feesup.app` / `password123`. Full details in **`docs/LOGIN.md`**.
+
 ## Environment variables
 
 See `backend/.env.example` and `frontend/.env.example` for the full list. Secrets are never
