@@ -66,10 +66,10 @@ approved, set `MESSAGING_PROVIDER=payperwa` + key/base URL (confirm the request 
 ## Optional later (not required to launch)
 - Versioned DB migrations: `npx prisma migrate dev --name init`, commit `prisma/migrations/`,
   switch Render start to `prisma migrate deploy`.
-- Real subscription billing (Razorpay Subscription) behind `POST /api/subscription/upgrade`.
+- Recurring Razorpay Subscriptions (instead of monthly Payment Links for Pro).
 - Model A: Razorpay Route linked accounts + 1% split (per-tutor payouts).
 
 ## The honest bottom line
-Everything a developer can build **is built, tested, and documented**. Steps 1–8 are account
-signups, approvals, and clicks that require your credentials — no code needed. Follow them in
-order and FeesUp is live.
+Everything a developer can build **is built, tested, and documented** (Phases 0–5). Steps 1–8
+are account signups, approvals, and clicks that require your credentials — no code needed.
+Follow them in order and FeesUp is live.

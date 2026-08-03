@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const { env } = require('./config/env');
+const { isAllowedOrigin } = require('./lib/cors');
 const { notFoundHandler, errorHandler } = require('./middleware/error');
 
 const authRoutes = require('./routes/auth.routes');
@@ -27,25 +28,9 @@ app.disable('x-powered-by');
 
 app.use(helmet());
 
-/**
- * Allow an origin if it matches a configured entry in FRONTEND_ORIGIN. Supports:
- *   - exact match:      https://app.example.com
- *   - wildcard suffix:  *.lovableproject.com  (matches any Lovable preview subdomain)
- *   - "*"               allow all (dev only)
- * Requests without an Origin header (server-to-server, curl) are always allowed.
- */
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-  return env.frontendOrigin.some((allowed) => {
-    if (allowed === '*') return true;
-    if (allowed.startsWith('*.')) return origin.endsWith(allowed.slice(1));
-    return origin === allowed;
-  });
-}
-
 app.use(
   cors({
-    origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
+    origin: (origin, cb) => cb(null, isAllowedOrigin(origin, env.frontendOrigin)),
     credentials: true,
   })
 );
@@ -57,7 +42,8 @@ app.use('/api/webhooks', webhookRoutes);
 // Cap JSON body size to blunt payload-based abuse.
 app.use(express.json({ limit: '100kb' }));
 if (env.nodeEnv !== 'test') {
-  app.use(morgan('dev'));
+  // combined = Apache-style access log (good for Render/log drains); dev = concise local.
+  app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
 }
 
 // Global rate limit for the API surface (auth + reminder routes add their own stricter caps).

@@ -14,7 +14,7 @@ This repository is a single repo containing:
 
 ## Status
 
-Implemented (Phases 0–4, against mock/test providers):
+Implemented (Phases 0–5, against mock/test providers):
 
 - Tutor signup / login with JWT auth and bcrypt password hashing; multi-tenant isolation.
 - Student management: add / edit / soft-delete, with a 10-student free-tier cap.
@@ -24,10 +24,12 @@ Implemented (Phases 0–4, against mock/test providers):
 - Razorpay payment links per fee record + webhook that auto-marks paid (idempotent, signature-verified).
 - WhatsApp reminders: 3 templates (pre-due / due / overdue), manual trigger + daily sweep.
 - Subscription (Free / Pro) + tutor onboarding (PAN / bank) via a Settings page.
+  Pro upgrade: mock activates immediately; with Razorpay, a ₹199 Payment Link is created and
+  Pro unlocks on the paid webhook.
 - Provider adapters (payments + WhatsApp): mock by default; real Razorpay (test mode) and
   PayPerWA wired — flip `PAYMENT_PROVIDER` / `MESSAGING_PROVIDER` + add keys to go live.
 
-Tooling: unit tests (`npm test` in `backend/`), GitHub Actions **CI** (build + tests on every
+Tooling: unit tests (`npm test` in `backend/` — 30 passing), GitHub Actions **CI** (build + tests on every
 push), a scheduled-jobs workflow (reminders + monthly fee generation), and deploy configs for
 Vercel + Render + Supabase.
 
@@ -40,7 +42,8 @@ endpoint reference + a copy-paste Lovable prompt, and **`backend/openapi.yaml`**
 `GET /openapi.yaml`) for the machine-readable contract. CORS accepts Lovable preview domains via
 `FRONTEND_ORIGIN` wildcards (e.g. `*.lovableproject.com`).
 
-Next: real subscription billing and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
+Next: your account/deploy clicks in **`docs/FINISH.md`**. Optional later: recurring Razorpay
+Subscriptions and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
 
 ## Tech stack
 
@@ -103,8 +106,8 @@ Legend: [done] already done for you · [you] you do this (account/click).
    `docs/WhatsAppTemplates.md` to Meta for approval** (start early — approval takes time), then
    set `MESSAGING_PROVIDER=payperwa` + key/base URL.
 
-**Optional later:** versioned DB migrations (`prisma migrate dev`), real subscription billing,
-and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
+**Optional later:** versioned DB migrations (`prisma migrate dev`), recurring Razorpay
+Subscriptions for Pro, and Model A (Razorpay Route + 1% split). See `docs/Phases.md`.
 
 ## Setup
 
@@ -128,6 +131,12 @@ npm run dev                 # starts app on http://localhost:5173
 ```
 
 Open http://localhost:5173, sign up as a tutor, and start adding students.
+
+## How users log in
+
+Tutors use **email + password** (JWT). Routes: `/login` and `/signup`. After signup or login the
+app stores a token and opens the dashboard. Demo account (after `npm run seed`):
+`demo@feesup.app` / `password123`. Full details in **`docs/LOGIN.md`**.
 
 ## Environment variables
 

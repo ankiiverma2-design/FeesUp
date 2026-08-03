@@ -24,6 +24,7 @@ async function createOrGetLink(tutorId, feeRecordId) {
     feeRecordId: record.id,
     studentId: record.studentId,
     tutorId,
+    purpose: 'fee',
     amount: record.amount,
     month: record.month,
     year: record.year,
@@ -43,8 +44,68 @@ async function createOrGetLink(tutorId, feeRecordId) {
 }
 
 /**
+ * Mark a fee record paid from a webhook (idempotent if already PAID).
+ */
+async function applyFeePaid(parsed, event) {
+  const record = await prisma.feeRecord.findUnique({ where: { id: parsed.feeRecordId } });
+  if (!record) return { ok: false, reason: 'fee_not_found' };
+  if (record.status !== 'PAID') {
+    await prisma.feeRecord.update({
+      where: { id: record.id },
+      data: { status: 'PAID', paidAt: new Date(), transactionId: parsed.paymentId },
+    });
+  }
+  if (parsed.paymentId) {
+    await prisma.payment.upsert({
+      where: { razorpayPaymentId: parsed.paymentId },
+      update: {},
+      create: {
+        tutorId: record.tutorId,
+        feeRecordId: record.id,
+        razorpayPaymentId: parsed.paymentId,
+        amount: parsed.amount || record.amount,
+        status: parsed.status || 'captured',
+        raw: event,
+      },
+    });
+  }
+  return { ok: true, feeRecordId: parsed.feeRecordId };
+}
+
+/**
+ * Activate Pro from a subscription payment webhook.
+ */
+async function applySubscriptionPaid(parsed, event) {
+  if (!parsed.tutorId) return { ok: false, reason: 'missing_tutor' };
+  const tutor = await prisma.tutor.findUnique({ where: { id: parsed.tutorId } });
+  if (!tutor) return { ok: false, reason: 'tutor_not_found' };
+
+  const plan = 'PRO';
+  await prisma.tutor.update({
+    where: { id: tutor.id },
+    data: { subscriptionPlan: plan, subscriptionStatus: 'ACTIVE' },
+  });
+
+  if (parsed.paymentId) {
+    await prisma.payment.upsert({
+      where: { razorpayPaymentId: parsed.paymentId },
+      update: {},
+      create: {
+        tutorId: tutor.id,
+        feeRecordId: null,
+        razorpayPaymentId: parsed.paymentId,
+        amount: parsed.amount || 0,
+        status: parsed.status || 'captured',
+        raw: event,
+      },
+    });
+  }
+  return { ok: true, tutorId: tutor.id, plan };
+}
+
+/**
  * Handle an incoming payment webhook. Verifies the signature, dedupes on the event id,
- * matches the fee record via notes, and marks it paid. Idempotent and safe to retry.
+ * matches the fee record or subscription via notes, and applies the payment. Idempotent.
  *
  * @param {Buffer} rawBody  raw request body (needed for signature verification)
  * @param {string} signature  provider signature header
@@ -73,35 +134,23 @@ async function handleWebhook(rawBody, signature, eventId) {
   }
 
   const parsed = paymentProvider.parseWebhookEvent(event);
-  if (!parsed || parsed.type !== 'PAID' || !parsed.feeRecordId) {
+  if (!parsed) {
     await prisma.webhookEvent.update({ where: { eventId: id }, data: { processedAt: new Date() } });
     return { ignored: true };
   }
 
-  const record = await prisma.feeRecord.findUnique({ where: { id: parsed.feeRecordId } });
-  if (record && record.status !== 'PAID') {
-    await prisma.feeRecord.update({
-      where: { id: record.id },
-      data: { status: 'PAID', paidAt: new Date(), transactionId: parsed.paymentId },
-    });
-    if (parsed.paymentId) {
-      await prisma.payment.upsert({
-        where: { razorpayPaymentId: parsed.paymentId },
-        update: {},
-        create: {
-          tutorId: record.tutorId,
-          feeRecordId: record.id,
-          razorpayPaymentId: parsed.paymentId,
-          amount: parsed.amount || record.amount,
-          status: parsed.status || 'captured',
-          raw: event,
-        },
-      });
-    }
+  let result;
+  if (parsed.type === 'SUBSCRIPTION_PAID') {
+    result = await applySubscriptionPaid(parsed, event);
+  } else if (parsed.type === 'PAID' && parsed.feeRecordId) {
+    result = await applyFeePaid(parsed, event);
+  } else {
+    await prisma.webhookEvent.update({ where: { eventId: id }, data: { processedAt: new Date() } });
+    return { ignored: true };
   }
 
   await prisma.webhookEvent.update({ where: { eventId: id }, data: { processedAt: new Date() } });
-  return { ok: true, feeRecordId: parsed.feeRecordId };
+  return result;
 }
 
-module.exports = { createOrGetLink, handleWebhook };
+module.exports = { createOrGetLink, handleWebhook, applyFeePaid, applySubscriptionPaid };
